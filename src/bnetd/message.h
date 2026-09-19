@@ -88,7 +88,10 @@ namespace pvpgn
 
 		typedef enum {
 			message_class_normal,
-			message_class_charjoin	/* use char*account (if account isnt d2 char is "") */
+			message_class_charjoin,	/* use char*account (if account isnt d2 char is "") */
+			message_class_d2_modern,
+			message_class_d2_100,
+			message_class_d2_100_charjoin
 		} t_message_class;
 
 		typedef struct message

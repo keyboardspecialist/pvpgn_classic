@@ -2439,8 +2439,12 @@ namespace pvpgn
 
 		extern t_message_class conn_get_message_class(t_connection const * c, t_connection const * dst)
 		{
-			if (dst && dst->protocol.d2.charname) /* message to D2 user must be char*account */
-				return message_class_charjoin;
+			if (dst && (conn_get_clienttag(dst) == CLIENTTAG_DIABLO2DV_UINT ||
+			            conn_get_clienttag(dst) == CLIENTTAG_DIABLO2XP_UINT)) {
+				if (conn_get_versionid(dst) == 0)
+					return dst->protocol.d2.charname ? message_class_d2_100_charjoin : message_class_d2_100;
+				return dst->protocol.d2.charname ? message_class_charjoin : message_class_d2_modern;
+			}
 
 			return message_class_normal;
 		}

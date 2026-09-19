@@ -32,6 +32,7 @@
 #include "common/packet.h"
 #include "common/bot_protocol.h"
 #include "common/bn_type.h"
+#include "common/d2cs_d2gs_character.h"
 #include "common/list.h"
 #include "common/util.h"
 #include "common/xstring.h"
@@ -58,6 +59,7 @@ namespace pvpgn
 		static int message_telnet_format(t_packet * packet, t_message_type type, t_connection * me, t_connection * dst, char const * text, unsigned int dstflags);
 		static int message_bot_format(t_packet * packet, t_message_type type, t_connection * me, t_connection * dst, char const * text, unsigned int dstflags);
 		static int message_bnet_format(t_packet * packet, t_message_type type, t_connection * me, t_connection * dst, char const * text, unsigned int dstflags);
+		static int message_bnet_append_playerinfo(t_packet * packet, t_connection * source, t_connection * destination);
 		static t_packet * message_cache_lookup(t_message * message, t_connection *dst, unsigned int flags);
 
 		static char const * message_type_get_str(t_message_type type)
@@ -981,6 +983,89 @@ namespace pvpgn
 		}
 
 
+		static int message_bnet_append_playerinfo(t_packet * packet, t_connection * source, t_connection * destination)
+		{
+			char const * playerinfo;
+			t_clienttag source_tag;
+			t_clienttag destination_tag;
+
+			source_tag=conn_get_clienttag(source);
+			if (source_tag == CLIENTTAG_WARCRAFT3_UINT || source_tag == CLIENTTAG_WAR3XP_UINT) {
+				playerinfo=conn_get_w3_playerinfo(source);
+				return packet_append_string(packet,playerinfo ? playerinfo : "");
+			}
+
+			playerinfo=conn_get_playerinfo(source);
+			if (!playerinfo)
+				return packet_append_string(packet,"");
+
+			destination_tag=conn_get_clienttag(destination);
+			if ((source_tag != CLIENTTAG_DIABLO2DV_UINT && source_tag != CLIENTTAG_DIABLO2XP_UINT) ||
+			    (destination_tag != CLIENTTAG_DIABLO2DV_UINT && destination_tag != CLIENTTAG_DIABLO2XP_UINT) ||
+			    !conn_get_realm(source) || !conn_get_realminfo(source))
+				return packet_append_string(packet,playerinfo);
+
+			char const * first_comma=std::strchr(playerinfo,',');
+			char const * portrait=first_comma ? std::strchr(first_comma+1,',') : NULL;
+			if (!portrait)
+				return packet_append_string(packet,playerinfo);
+			portrait++;
+
+			/* D2 1.00 and later clients decode different portrait layouts. */
+			std::size_t portrait_length=std::strlen(portrait);
+			bool source_legacy=portrait_length >= D2CHARINFO_PORTRAIT_LEGACY_BASE_SIZE-1;
+			bool destination_legacy=conn_get_versionid(destination) == 0;
+			unsigned char converted[D2CHARINFO_PORTRAIT_LEGACY_BASE_SIZE-1];
+			std::size_t converted_length;
+
+			if (destination_legacy) {
+				converted_length=D2CHARINFO_PORTRAIT_LEGACY_BASE_SIZE-1;
+				if (source_legacy) {
+					std::memcpy(converted,portrait,converted_length);
+				}
+				else {
+					if (portrait_length < D2CHARINFO_PORTRAIT_MODERN_SIZE-1)
+						return packet_append_string(packet,playerinfo);
+					converted[0]=0x83;
+					converted[1]=0x80;
+					std::memset(converted+2,D2CHAR_INFO_FILLER,16);
+					std::memcpy(converted+2,portrait+2,11);
+					converted[18]=(unsigned char)portrait[13];
+					std::memset(converted+19,D2CHAR_INFO_FILLER,16);
+					std::memcpy(converted+19,portrait+14,11);
+					converted[35]=(unsigned char)portrait[25];
+					std::memcpy(converted+36,portrait+26,7);
+				}
+			}
+			else {
+				converted_length=D2CHARINFO_PORTRAIT_MODERN_SIZE-1;
+				if (!source_legacy) {
+					if (portrait_length < converted_length)
+						return packet_append_string(packet,playerinfo);
+					std::memcpy(converted,portrait,converted_length);
+				}
+				else {
+					converted[0]=0x84;
+					converted[1]=0x80;
+					std::memcpy(converted+2,portrait+2,11);
+					converted[13]=(unsigned char)portrait[18];
+					std::memcpy(converted+14,portrait+19,11);
+					converted[25]=(unsigned char)portrait[35];
+					std::memcpy(converted+26,portrait+36,7);
+				}
+			}
+
+			std::string formatted(playerinfo,portrait-playerinfo);
+			formatted.append((char const *)converted,converted_length);
+			if (destination_legacy && conn_get_versionid(source) <= 99) {
+				char version_tag[4];
+				std::snprintf(version_tag,sizeof(version_tag),"%03lu",100+conn_get_versionid(source));
+				formatted.append(version_tag);
+			}
+			return packet_append_string(packet,formatted.c_str());
+		}
+
+
 		static int message_bnet_format(t_packet * packet, t_message_type type, t_connection * me, t_connection * dst, char const * text, unsigned int dstflags)
 		{
 			if (!packet)
@@ -1020,17 +1105,11 @@ namespace pvpgn
 				bn_int_set(&packet->u.server_message.latency, conn_get_latency(me));
 				{
 					char const * tname;
-					char const * playerinfo;
 
 					tname = conn_get_chatcharname(me, dst);
 					packet_append_string(packet, tname);
 					conn_unget_chatcharname(me, tname);
-					if ((conn_get_clienttag(me) == CLIENTTAG_WARCRAFT3_UINT) || (conn_get_clienttag(me) == CLIENTTAG_WAR3XP_UINT))
-						playerinfo = conn_get_w3_playerinfo(me);
-					else playerinfo = conn_get_playerinfo(me);
-
-					if (playerinfo == NULL) { playerinfo = ""; }
-					packet_append_string(packet, playerinfo);
+					message_bnet_append_playerinfo(packet,me,dst);
 				}
 				break;
 			case message_type_join:
@@ -1047,18 +1126,11 @@ namespace pvpgn
 				else
 				{
 					char const * tname;
-					char const * playerinfo;
 
 					tname = conn_get_chatcharname(me, dst);
 					packet_append_string(packet, tname);
 					conn_unget_chatcharname(me, tname);
-
-					if ((conn_get_clienttag(me) == CLIENTTAG_WARCRAFT3_UINT) || (conn_get_clienttag(me) == CLIENTTAG_WAR3XP_UINT))
-						playerinfo = conn_get_w3_playerinfo(me);
-					else playerinfo = conn_get_playerinfo(me);
-
-					if (playerinfo == NULL) { playerinfo = ""; }
-					packet_append_string(packet, playerinfo);
+					message_bnet_append_playerinfo(packet,me,dst);
 				}
 				break;
 			case message_type_part:
@@ -1195,18 +1267,11 @@ namespace pvpgn
 				bn_int_set(&packet->u.server_message.latency, conn_get_latency(me));
 				{
 					char const * tname;
-					char const * playerinfo;
 
 					tname = conn_get_chatcharname(me, dst);
 					packet_append_string(packet, tname);
 					conn_unget_chatcharname(me, tname);
-					if ((conn_get_clienttag(me) == CLIENTTAG_WARCRAFT3_UINT) || (conn_get_clienttag(me) == CLIENTTAG_WAR3XP_UINT))
-						playerinfo = conn_get_w3_playerinfo(me);
-					else playerinfo = conn_get_playerinfo(me);
-
-					if (playerinfo == NULL) { playerinfo = ""; }
-
-					packet_append_string(packet, playerinfo);
+					message_bnet_append_playerinfo(packet,me,dst);
 				}
 				break;
 			case message_type_whisperack:
