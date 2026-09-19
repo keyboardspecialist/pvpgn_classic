@@ -56,11 +56,16 @@ namespace pvpgn
 	              offsetof(t_client_d2cs_loginreq_100, sessionkey) == 19 &&
 	              offsetof(t_client_d2cs_loginreq_100, secret_hash) == 31,
 	              "Diablo II 1.00 D2CS login layout changed");
+	static_assert(sizeof(t_client_d2cs_ladderreq_100) == 4 &&
+	              sizeof(t_d2cs_client_ladderheader_100) == 8 &&
+	              sizeof(t_d2cs_client_ladderinfo) == 28,
+	              "Diablo II 1.00 ladder layout changed");
 
 namespace d2cs
 {
 
 static int d2cs_send_client_ladder(t_connection * c, unsigned char type, unsigned short from);
+static int d2cs_send_client_ladder_100(t_connection * c, unsigned char type);
 static unsigned int d2cs_try_joingame(t_connection const * c, t_game const * game, char const * gamepass);
 
 DECLARE_PACKET_HANDLER(on_client_loginreq)
@@ -99,7 +104,7 @@ static t_packet_handle_table d2cs_packet_handle_table[]={
 /* 0x0e */ { 0,                                     conn_state_none,                          NULL                      },
 /* 0x0f */ { 0,                                     conn_state_none,                          NULL                      },
 /* 0x10 */ { sizeof(t_client_d2cs_charlistreq_100), conn_state_authed|conn_state_char_authed, on_client_charlistreq_100 },
-/* 0x11 */ { sizeof(t_client_d2cs_ladderreq),       conn_state_char_authed,                   on_client_ladderreq	},
+/* 0x11 */ { sizeof(t_client_d2cs_ladderreq_100),   conn_state_char_authed,                   on_client_ladderreq	},
 /* 0x12 */ { sizeof(t_client_d2cs_motdreq),         conn_state_char_authed,                   on_client_motdreq         },
 /* 0x13 */ { sizeof(t_client_d2cs_cancelcreategame),conn_state_char_authed,                   on_client_cancelcreategame},
 /* 0x14 */ { 0,                                     conn_state_none,                          NULL                      },
@@ -709,8 +714,71 @@ static int on_client_ladderreq(t_connection * c, t_packet * packet)
 	unsigned short		start_pos;
 
 	type=bn_byte_get(packet->u.client_d2cs_ladderreq.type);
+	if (conn_get_legacy_100(c)) {
+		if (packet_get_size(packet)!=sizeof(t_client_d2cs_ladderreq_100)) {
+			eventlog(eventlog_level_error,__FUNCTION__,"got bad Diablo II 1.00 ladder request size {}",packet_get_size(packet));
+			return -1;
+		}
+		return d2cs_send_client_ladder_100(c,type);
+	}
+	if (packet_get_size(packet)<sizeof(t_client_d2cs_ladderreq)) {
+		eventlog(eventlog_level_error,__FUNCTION__,"got bad ladder request size {}",packet_get_size(packet));
+		return -1;
+	}
 	start_pos=bn_short_get(packet->u.client_d2cs_ladderreq.start_pos);
 	d2cs_send_client_ladder(c,type,start_pos);
+	return 0;
+}
+
+static int d2cs_send_client_ladder_100(t_connection * c, unsigned char type)
+{
+	t_packet			* rpacket;
+	t_d2cs_client_ladderinfo const	* ladderinfo;
+	t_d2cs_client_ladderheader_100	ladderheader;
+	unsigned int			count, count_per_packet, curr_len, cont_len, total_len;
+	unsigned int			i, n, npacket, curr_pos, start_pos;
+
+	start_pos=0;
+	count=prefs_get_ladderlist_count();
+	ladderinfo=NULL;
+	if (d2ladder_get_ladder(&start_pos,&count,type,&ladderinfo)<0)
+		count=0;
+
+	count_per_packet=14;
+	npacket=count ? (count+count_per_packet-1)/count_per_packet : 1;
+	total_len=sizeof(ladderheader)+count*sizeof(*ladderinfo);
+	bn_int_set(&ladderheader.count,count);
+	bn_int_set(&ladderheader.name_width,MAX_CHARNAME_LEN);
+	cont_len=0;
+
+	for (i=0; i<npacket; i++) {
+		if (!(rpacket=packet_create(packet_class_d2cs)))
+			return -1;
+		packet_set_size(rpacket,sizeof(t_d2cs_client_ladderreply));
+		packet_set_type(rpacket,D2CS_CLIENT_LADDERREPLY);
+		bn_byte_set(&rpacket->u.d2cs_client_ladderreply.type,type);
+		bn_short_set(&rpacket->u.d2cs_client_ladderreply.total_len,total_len);
+		bn_short_set(&rpacket->u.d2cs_client_ladderreply.cont_len,cont_len);
+
+		curr_len=0;
+		if (i==0) {
+			packet_append_data(rpacket,&ladderheader,sizeof(ladderheader));
+			curr_len+=sizeof(ladderheader);
+		}
+		for (n=0; n<count_per_packet; n++) {
+			curr_pos=n+i*count_per_packet;
+			if (curr_pos>=count)
+				break;
+			packet_append_data(rpacket,ladderinfo+curr_pos,sizeof(*ladderinfo));
+			curr_len+=sizeof(*ladderinfo);
+		}
+		bn_short_set(&rpacket->u.d2cs_client_ladderreply.curr_len,curr_len);
+		conn_push_outqueue(c,rpacket);
+		packet_del_ref(rpacket);
+		cont_len+=curr_len;
+	}
+
+	eventlog(eventlog_level_info,__FUNCTION__,"sent Diablo II 1.00 ladder type {} with {} entries",type,count);
 	return 0;
 }
 

@@ -249,6 +249,12 @@ namespace pvpgn
 	typedef struct
 	{
 		t_d2cs_client_header	h;
+		bn_byte			type;			/* ladder type request */
+	} t_client_d2cs_ladderreq_100;
+
+	typedef struct
+	{
+		t_d2cs_client_header	h;
 		bn_byte			type;			/* jadder type request */
 		bn_short		start_pos;		/* list ladder from what position */
 	} t_client_d2cs_ladderreq;
@@ -272,6 +278,12 @@ namespace pvpgn
 		bn_short		u1;			/* always zero */
 		bn_int			count1;			/* always 0x10 */
 	} t_d2cs_client_ladderheader;
+
+	typedef struct
+	{
+		bn_int			count;
+		bn_int			name_width;
+	} t_d2cs_client_ladderheader_100;
 
 	typedef struct
 	{
