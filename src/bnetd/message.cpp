@@ -1014,7 +1014,7 @@ namespace pvpgn
 			/* D2 1.00 and later clients decode different portrait layouts. */
 			std::size_t portrait_length=std::strlen(portrait);
 			bool source_legacy=portrait_length >= D2CHARINFO_PORTRAIT_LEGACY_BASE_SIZE-1;
-			bool destination_legacy=conn_get_versionid(destination) == 0;
+			bool destination_legacy=conn_is_legacy_d2_client(destination);
 			unsigned char converted[D2CHARINFO_PORTRAIT_LEGACY_BASE_SIZE-1];
 			std::size_t converted_length;
 

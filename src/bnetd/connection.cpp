@@ -1401,6 +1401,13 @@ namespace pvpgn
 		}
 
 
+		extern bool conn_is_legacy_d2_client(t_connection const * c)
+		{
+			return c && conn_get_clienttag(c) == CLIENTTAG_DIABLO2DV_UINT &&
+				(conn_get_versionid(c) == 0 || conn_get_versionid(c) == 1);
+		}
+
+
 		extern int conn_get_tzbias(t_connection const * c)
 		{
 			if (!c)
@@ -2441,8 +2448,8 @@ namespace pvpgn
 		{
 			if (dst && (conn_get_clienttag(dst) == CLIENTTAG_DIABLO2DV_UINT ||
 			            conn_get_clienttag(dst) == CLIENTTAG_DIABLO2XP_UINT)) {
-				if (conn_get_versionid(dst) == 0)
-					return dst->protocol.d2.charname ? message_class_d2_100_charjoin : message_class_d2_100;
+				if (conn_is_legacy_d2_client(dst))
+					return dst->protocol.d2.charname ? message_class_d2_legacy_charjoin : message_class_d2_legacy;
 				return dst->protocol.d2.charname ? message_class_charjoin : message_class_d2_modern;
 			}
 

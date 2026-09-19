@@ -90,8 +90,8 @@ namespace pvpgn
 			message_class_normal,
 			message_class_charjoin,	/* use char*account (if account isnt d2 char is "") */
 			message_class_d2_modern,
-			message_class_d2_100,
-			message_class_d2_100_charjoin
+			message_class_d2_legacy,
+			message_class_d2_legacy_charjoin
 		} t_message_class;
 
 		typedef struct message

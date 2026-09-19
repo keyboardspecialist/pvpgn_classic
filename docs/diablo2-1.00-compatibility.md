@@ -11,9 +11,9 @@ SID `0x37` before it has selected or joined a realm. The original PvPGN path
 looked up account metadata using `conn_get_realm(c)`, which is null at this
 point, and returned an empty list.
 
-For the exact `D2DV` 1.00 client (`versionid == 0`), BNCS now reads the
-authoritative D2CS charinfo files from `d2cs_charinfo_dir`. It returns at most
-eight records containing:
+For the exact early `D2DV` 1.00 and 1.01 clients (`versionid` `0` and `1`),
+BNCS now reads the authoritative D2CS charinfo files from
+`d2cs_charinfo_dir`. It returns at most eight records containing:
 
 ```text
 RealmName,CharacterName\0
@@ -21,7 +21,7 @@ RealmName,CharacterName\0
 ```
 
 Modern 34-byte portraits are converted to the classic fixed layout. Existing
-classic portraits are preserved. Other clients retain the original PvPGN
+classic portraits are preserved. Later clients retain the original PvPGN
 character-list path.
 
 The deployment configuration is:
@@ -30,9 +30,9 @@ The deployment configuration is:
 d2cs_charinfo_dir = var\charinfo
 ```
 
-D2CS also recognizes the shorter 1.00 login structure and supports the legacy
+D2CS also recognizes the shorter early login structure and supports the legacy
 MCP `0x10` character summary message. The BNCS SID `0x37` response remains the
-message that populates the pre-realm 1.00 selector.
+message that populates the pre-realm 1.00/1.01 selector.
 
 ## Character storage
 
@@ -80,3 +80,6 @@ The integration test on September 18, 2026 verified:
 
 The corresponding D2GS ABI, D2Net, callback, and exact-hash details are in
 `docs/classic-1.09-adapter.md` in the companion repository.
+
+The byte-level BNCS, MCP, ladder, portrait, and D2Net formats shared or
+compared with 1.01 are recorded in `docs/diablo2-1.00-1.01-protocol.md`.

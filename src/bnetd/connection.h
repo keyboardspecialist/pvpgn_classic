@@ -307,6 +307,7 @@ namespace pvpgn
 		extern void conn_set_clienttag(t_connection * c, t_clienttag clienttag);
 		extern unsigned long conn_get_versionid(t_connection const * c);
 		extern int conn_set_versionid(t_connection * c, unsigned long versionid);
+		extern bool conn_is_legacy_d2_client(t_connection const * c);
 		extern unsigned long conn_get_gameversion(t_connection const * c);
 		extern int conn_set_gameversion(t_connection * c, unsigned long gameversion);
 		extern unsigned long conn_get_checksum(t_connection const * c);

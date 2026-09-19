@@ -171,7 +171,7 @@ static int on_client_loginreq(t_connection * c, t_packet * packet)
 	}
 	sessionnum=bn_int_get(authpacket->u.client_d2cs_loginreq.sessionnum);
 	conn_set_bnetd_sessionnum(c,sessionnum);
-	eventlog(eventlog_level_info,__FUNCTION__,"got client (*{}) login request sessionnum=0x{:X}{}",account,sessionnum,legacy_100 ? " using Diablo II 1.00 layout" : "");
+	eventlog(eventlog_level_info,__FUNCTION__,"got client (*{}) login request sessionnum=0x{:X}{}",account,sessionnum,legacy_100 ? " using early Diablo II layout" : "");
 	if ((bnpacket=packet_create(packet_class_d2cs_bnetd))) {
 		if ((sq=sq_create(d2cs_conn_get_sessionnum(c),authpacket,0))) {
 			packet_set_size(bnpacket,sizeof(t_d2cs_bnetd_accountloginreq));
@@ -716,7 +716,7 @@ static int on_client_ladderreq(t_connection * c, t_packet * packet)
 	type=bn_byte_get(packet->u.client_d2cs_ladderreq.type);
 	if (conn_get_legacy_100(c)) {
 		if (packet_get_size(packet)!=sizeof(t_client_d2cs_ladderreq_100)) {
-			eventlog(eventlog_level_error,__FUNCTION__,"got bad Diablo II 1.00 ladder request size {}",packet_get_size(packet));
+			eventlog(eventlog_level_error,__FUNCTION__,"got bad early Diablo II ladder request size {}",packet_get_size(packet));
 			return -1;
 		}
 		return d2cs_send_client_ladder_100(c,type);
@@ -778,7 +778,7 @@ static int d2cs_send_client_ladder_100(t_connection * c, unsigned char type)
 		cont_len+=curr_len;
 	}
 
-	eventlog(eventlog_level_info,__FUNCTION__,"sent Diablo II 1.00 ladder type {} with {} entries",type,count);
+	eventlog(eventlog_level_info,__FUNCTION__,"sent early Diablo II ladder type {} with {} entries",type,count);
 	return 0;
 }
 
@@ -1030,7 +1030,7 @@ extern int d2cs_send_client_charlist_100(t_connection * c)
 		packet_del_ref(rpacket);
 	}
 	eventlog(eventlog_level_info,__FUNCTION__,
-		"sent Diablo II 1.00 character list with {} entries to *{}",count,account);
+		"sent early Diablo II character list with {} entries to *{}",count,account);
 	return 0;
 }
 

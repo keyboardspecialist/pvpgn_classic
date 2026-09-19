@@ -141,11 +141,11 @@ namespace pvpgn
 		static int _client_realmlistreq(t_connection * c, t_packet const *const packet);
 		static int _client_realmlistreq110(t_connection * c, t_packet const *const packet);
 		static int _client_profilereq(t_connection * c, t_packet const *const packet);
-		static int _client_realmjoinreq(t_connection * c, t_packet const *const packet, bool legacy_100);
+		static int _client_realmjoinreq(t_connection * c, t_packet const *const packet, bool legacy_d2);
 		static int _client_realmjoinreq109(t_connection * c, t_packet const *const packet);
 		static int _client_unknown39(t_connection * c, t_packet const *const packet);
 		static int _client_charlistreq(t_connection * c, t_packet const *const packet);
-		static unsigned int append_legacy_100_charlist(t_connection * c, t_packet * packet);
+		static unsigned int append_legacy_d2_charlist(t_connection * c, t_packet * packet);
 		static int _client_adreq(t_connection * c, t_packet const *const packet);
 		static int _client_adack(t_connection * c, t_packet const *const packet);
 		static int _client_adclick(t_connection * c, t_packet const *const packet);
@@ -3113,8 +3113,8 @@ namespace pvpgn
 			t_clan *clan;
 			bn_int clanTAG;
 
-			/* Diablo II 1.00 uses SID_PROFILE for its realm-login exchange. */
-			if (conn_get_clienttag(c) == CLIENTTAG_DIABLO2DV_UINT && conn_get_versionid(c) == 0)
+			/* Early Diablo II clients use SID_PROFILE for their realm-login exchange. */
+			if (conn_is_legacy_d2_client(c))
 				return _client_realmjoinreq(c, packet, true);
 
 			if (packet_get_size(packet) < sizeof(t_client_profilereq)) {
@@ -3154,7 +3154,7 @@ namespace pvpgn
 		}
 
 
-		static int _client_realmjoinreq(t_connection * c, t_packet const *const packet, bool legacy_100)
+		static int _client_realmjoinreq(t_connection * c, t_packet const *const packet, bool legacy_d2)
 		{
 			t_packet *rpacket;
 
@@ -3211,7 +3211,7 @@ namespace pvpgn
 							bnet_hash(&secret_hash, sizeof(temp), &temp);
 
 							if ((rpacket = packet_create(packet_class_bnet))) {
-								if (legacy_100) {
+								if (legacy_d2) {
 									packet_set_size(rpacket, sizeof(t_server_realmjoinreply_100));
 									packet_set_type(rpacket, SERVER_PROFILEREPLY);
 									bn_int_set(&rpacket->u.server_realmjoinreply_100.seqno, salt);
@@ -3235,7 +3235,7 @@ namespace pvpgn
 
 									trans_net(conn_get_addr(c), &addr, &port);
 
-									if (legacy_100) {
+									if (legacy_d2) {
 										bn_int_nset(&rpacket->u.server_realmjoinreply_100.addr, addr);
 										bn_short_nset(&rpacket->u.server_realmjoinreply_100.port, port);
 									}
@@ -3244,7 +3244,7 @@ namespace pvpgn
 										bn_short_nset(&rpacket->u.server_realmjoinreply_109.port, port);
 									}
 								}
-								if (legacy_100) {
+								if (legacy_d2) {
 									bn_int_set(&rpacket->u.server_realmjoinreply_100.sessionkey, conn_get_sessionkey(c));
 									bn_int_set(&rpacket->u.server_realmjoinreply_100.u5, 0);
 									bn_int_set(&rpacket->u.server_realmjoinreply_100.u6, 0);
@@ -3277,9 +3277,9 @@ namespace pvpgn
 					eventlog(eventlog_level_error, __FUNCTION__, "[{}] could not find active realm \"{}\"", conn_get_socket(c), realmname);
 
 				if ((rpacket = packet_create(packet_class_bnet))) {
-					packet_set_size(rpacket, legacy_100 ? offsetof(t_server_realmjoinreply_100, bncs_addr1) : sizeof(t_server_realmjoinreply_109));
-					packet_set_type(rpacket, legacy_100 ? SERVER_PROFILEREPLY : SERVER_REALMJOINREPLY_109);
-					if (legacy_100) {
+					packet_set_size(rpacket, legacy_d2 ? offsetof(t_server_realmjoinreply_100, bncs_addr1) : sizeof(t_server_realmjoinreply_109));
+					packet_set_type(rpacket, legacy_d2 ? SERVER_PROFILEREPLY : SERVER_REALMJOINREPLY_109);
+					if (legacy_d2) {
 						bn_int_set(&rpacket->u.server_realmjoinreply_100.seqno, bn_int_get(packet->u.client_realmjoinreq_109.seqno));
 						bn_int_set(&rpacket->u.server_realmjoinreply_100.u1, 0);
 						conn_push_outqueue(c, rpacket);
@@ -3319,7 +3319,7 @@ namespace pvpgn
 			return _client_realmjoinreq(c, packet, false);
 		}
 
-		static unsigned int append_legacy_100_charlist(t_connection * c, t_packet * packet)
+		static unsigned int append_legacy_d2_charlist(t_connection * c, t_packet * packet)
 		{
 			static unsigned int const max_characters = 8;
 			t_elem const * curr;
@@ -3340,7 +3340,7 @@ namespace pvpgn
 				}
 			}
 			if (!realm || !(realmname=realm_get_name(realm))) {
-				eventlog(eventlog_level_error,__FUNCTION__,"[{}] no active realm for Diablo II 1.00 character list",conn_get_socket(c));
+				eventlog(eventlog_level_error,__FUNCTION__,"[{}] no active realm for legacy Diablo II character list",conn_get_socket(c));
 				return 0;
 			}
 
@@ -3390,7 +3390,7 @@ namespace pvpgn
 			catch (const Directory::OpenError&) {
 				eventlog(eventlog_level_error,__FUNCTION__,"[{}] could not open D2CS charinfo directory '{}'",conn_get_socket(c),directory);
 			}
-			eventlog(eventlog_level_info,__FUNCTION__,"[{}] sent {} Diablo II 1.00 characters from '{}'",conn_get_socket(c),count,directory);
+			eventlog(eventlog_level_info,__FUNCTION__,"[{}] sent {} legacy Diablo II characters from '{}'",conn_get_socket(c),count,directory);
 			return count;
 		}
 
@@ -3417,8 +3417,8 @@ namespace pvpgn
 				packet_set_type(rpacket, SERVER_UNKNOWN_37);
 				bn_int_set(&rpacket->u.server_unknown_37.unknown1, SERVER_UNKNOWN_37_UNKNOWN1);
 				bn_int_set(&rpacket->u.server_unknown_37.unknown2, SERVER_UNKNOWN_37_UNKNOWN2);
-				if (conn_get_clienttag(c)==CLIENTTAG_DIABLO2DV_UINT && conn_get_versionid(c)==0) {
-					bn_int_set(&rpacket->u.server_unknown_37.count,append_legacy_100_charlist(c,rpacket));
+				if (conn_is_legacy_d2_client(c)) {
+					bn_int_set(&rpacket->u.server_unknown_37.count,append_legacy_d2_charlist(c,rpacket));
 					conn_push_outqueue(c,rpacket);
 					packet_del_ref(rpacket);
 					return 0;
