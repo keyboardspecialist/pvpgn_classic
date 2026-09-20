@@ -20,6 +20,7 @@
 #include "setup.h"
 #include "handle_d2cs.h"
 
+#include <cctype>
 #include <cstddef>
 #include <cstring>
 #include <ctime>
@@ -60,12 +61,18 @@ namespace pvpgn
 	              sizeof(t_d2cs_client_ladderheader_100) == 8 &&
 	              sizeof(t_d2cs_client_ladderinfo) == 28,
 	              "Diablo II 1.00 ladder layout changed");
+	static_assert(sizeof(t_client_d2cs_charlistreq_104) == 3 &&
+	              sizeof(t_d2cs_client_charlistreply_104) == 11,
+	              "Diablo II 1.04 character-list layout changed");
 
 namespace d2cs
 {
 
 static int d2cs_send_client_ladder(t_connection * c, unsigned char type, unsigned short from);
 static int d2cs_send_client_ladder_100(t_connection * c, unsigned char type);
+static int d2cs_send_client_charlist_104(t_connection * c);
+static void d2cs_render_client_portrait_104(t_d2charinfo_file const * charinfo,
+	char portrait[D2CHARINFO_PORTRAIT_STORAGE_SIZE]);
 static unsigned int d2cs_try_joingame(t_connection const * c, t_game const * game, char const * gamepass);
 
 DECLARE_PACKET_HANDLER(on_client_loginreq)
@@ -81,6 +88,7 @@ DECLARE_PACKET_HANDLER(on_client_motdreq)
 DECLARE_PACKET_HANDLER(on_client_cancelcreategame)
 DECLARE_PACKET_HANDLER(on_client_charladderreq)
 DECLARE_PACKET_HANDLER(on_client_charlistreq_100)
+DECLARE_PACKET_HANDLER(on_client_charlistreq_104)
 DECLARE_PACKET_HANDLER(on_client_charlistreq)
 DECLARE_PACKET_HANDLER(on_client_charlistreq_110)
 DECLARE_PACKET_HANDLER(on_client_convertcharreq)
@@ -108,7 +116,7 @@ static t_packet_handle_table d2cs_packet_handle_table[]={
 /* 0x12 */ { sizeof(t_client_d2cs_motdreq),         conn_state_char_authed,                   on_client_motdreq         },
 /* 0x13 */ { sizeof(t_client_d2cs_cancelcreategame),conn_state_char_authed,                   on_client_cancelcreategame},
 /* 0x14 */ { 0,                                     conn_state_none,                          NULL                      },
-/* 0x15 */ { 0,                                     conn_state_none,                          NULL                      },
+/* 0x15 */ { sizeof(t_client_d2cs_charlistreq_104), conn_state_authed|conn_state_char_authed, on_client_charlistreq_104 },
 /* 0x16 */ { sizeof(t_client_d2cs_charladderreq),   conn_state_char_authed,                   on_client_charladderreq	},
 /* 0x17 */ { sizeof(t_client_d2cs_charlistreq),     conn_state_authed|conn_state_char_authed, on_client_charlistreq	},
 /* 0x18 */ { sizeof(t_client_d2cs_convertcharreq),  conn_state_authed|conn_state_char_authed, on_client_convertcharreq  },
@@ -1031,6 +1039,126 @@ extern int d2cs_send_client_charlist_100(t_connection * c)
 	}
 	eventlog(eventlog_level_info,__FUNCTION__,
 		"sent early Diablo II character list with {} entries to *{}",count,account);
+	return 0;
+}
+
+static int on_client_charlistreq_104(t_connection * c, t_packet * packet)
+{
+	if (!packet || !conn_is_104_client(c))
+		return -1;
+	if (packet_get_size(packet)!=sizeof(t_client_d2cs_charlistreq_104)) {
+		eventlog(eventlog_level_error,__FUNCTION__,"got bad Diablo II 1.04 character-list request size {}",packet_get_size(packet));
+		return -1;
+	}
+	return d2cs_send_client_charlist_104(c);
+}
+
+static void d2cs_render_client_portrait_104(t_d2charinfo_file const * charinfo,
+	char portrait[D2CHARINFO_PORTRAIT_STORAGE_SIZE])
+{
+	static std::size_t const guild_tag_offset=D2CHARINFO_PORTRAIT_MODERN_SIZE-1;
+	char patch_tag[4]="???";
+
+	d2char_portrait_render(&charinfo->portrait,0,portrait);
+	if (bn_int_get(charinfo->header.reserved[D2CHARINFO_PATCH_TAG_MAGIC_RESERVED]) == D2CHARINFO_PATCH_TAG_MAGIC) {
+		unsigned int stored_tag=bn_int_get(charinfo->header.reserved[D2CHARINFO_PATCH_TAG_VALUE_RESERVED]);
+		char candidate[3];
+		bool valid=true;
+		for (unsigned int i=0; i<3; i++) {
+			candidate[i]=(char)(stored_tag >> (i*8));
+			if (!std::isalnum((unsigned char)candidate[i]))
+				valid=false;
+		}
+		if (valid)
+			std::memcpy(patch_tag,candidate,sizeof(candidate));
+	}
+	std::memcpy(portrait+guild_tag_offset,patch_tag,3);
+	portrait[guild_tag_offset+3]='\0';
+}
+
+static int d2cs_send_client_charlist_104(t_connection * c)
+{
+	static unsigned int const max_104_characters = 8;
+	t_packet * rpacket;
+	char const * account;
+	char const * charname;
+	char * path;
+	t_d2charinfo_file * charinfo;
+	unsigned int n, maxchar, reply_maxchar;
+	t_elist charlist_head;
+	char const * charlist_sort_order;
+	char portrait[D2CHARINFO_PORTRAIT_STORAGE_SIZE];
+
+	if (!conn_is_104_client(c))
+		return -1;
+	if (!(account=d2cs_conn_get_account(c))) {
+		eventlog(eventlog_level_error,__FUNCTION__,"missing account for connection");
+		return -1;
+	}
+	if (!(rpacket=packet_create(packet_class_d2cs)))
+		return -1;
+
+	path=(char*)xmalloc(std::strlen(prefs_get_charinfo_dir())+1+std::strlen(account)+1);
+	d2char_get_infodir_name(path,account);
+	charlist_sort_order=prefs_get_charlist_sort_order();
+	maxchar=prefs_get_maxchar();
+	if (maxchar>max_104_characters)
+		maxchar=max_104_characters;
+	n=0;
+	elist_init(&charlist_head);
+	bool retry=true;
+	while (retry) {
+		try {
+			Directory dir(path);
+			while (n<maxchar && (charname=dir.read())) {
+				charinfo=(t_d2charinfo_file*)xmalloc(sizeof(t_d2charinfo_file));
+				if (d2charinfo_load(account,charname,charinfo)<0) {
+					eventlog(eventlog_level_error,__FUNCTION__,"error loading charinfo for {}(*{})",charname,account);
+					xfree((void*)charinfo);
+					continue;
+				}
+				d2charlist_add_char(&charlist_head,charinfo,0);
+				n++;
+			}
+			retry=false;
+		}
+		catch (const Directory::OpenError&) {
+			if (p_mkdir(path,S_IRWXU)!=0)
+				retry=false;
+		}
+	}
+	xfree(path);
+
+	reply_maxchar=prefs_allow_newchar() && n<maxchar ? maxchar : n;
+	packet_set_size(rpacket,sizeof(t_d2cs_client_charlistreply_104));
+	packet_set_type(rpacket,D2CS_CLIENT_CHARLISTREPLY_104);
+	bn_int_set(&rpacket->u.d2cs_client_charlistreply_104.maxchar,reply_maxchar);
+	bn_int_set(&rpacket->u.d2cs_client_charlistreply_104.currchar,n);
+
+	t_elist * curr, * safe;
+	t_d2charlist * entry;
+	if (!std::strcmp(charlist_sort_order,"ASC")) {
+		elist_for_each_safe(curr,&charlist_head,safe) {
+			entry=elist_entry(curr,t_d2charlist,list);
+			packet_append_string(rpacket,(char*)entry->charinfo->header.charname);
+			d2cs_render_client_portrait_104(entry->charinfo,portrait);
+			packet_append_string(rpacket,portrait);
+			xfree((void*)entry->charinfo);
+			xfree((void*)entry);
+		}
+	} else {
+		elist_for_each_safe_rev(curr,&charlist_head,safe) {
+			entry=elist_entry(curr,t_d2charlist,list);
+			packet_append_string(rpacket,(char*)entry->charinfo->header.charname);
+			d2cs_render_client_portrait_104(entry->charinfo,portrait);
+			packet_append_string(rpacket,portrait);
+			xfree((void*)entry->charinfo);
+			xfree((void*)entry);
+		}
+	}
+	conn_push_outqueue(c,rpacket);
+	packet_del_ref(rpacket);
+	eventlog(eventlog_level_info,__FUNCTION__,"sent Diablo II 1.04 character list with {} entries to *{}",n,account);
 	return 0;
 }
 

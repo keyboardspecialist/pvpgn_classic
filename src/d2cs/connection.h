@@ -146,6 +146,7 @@ extern int conn_set_legacy_100(t_connection * c, unsigned int legacy_100);
 extern unsigned int conn_get_legacy_100(t_connection const * c);
 extern int conn_set_patch_tag(t_connection * c, unsigned int patch_tag);
 extern unsigned int conn_get_patch_tag(t_connection const * c);
+extern bool conn_is_104_client(t_connection const * c);
 extern int conn_add_fd(t_connection * c, t_fdwatch_type rw, fdwatch_handler handler);
 extern int connlist_check_timeout(void);
 

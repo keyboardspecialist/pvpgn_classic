@@ -713,6 +713,15 @@ namespace pvpgn
 			return c->patch_tag;
 		}
 
+		extern bool conn_is_104_client(t_connection const * c)
+		{
+			unsigned int patch_tag;
+
+			ASSERT(c, false);
+			patch_tag = conn_get_patch_tag(c);
+			return patch_tag == 0x00423430U || patch_tag == 0x00433430U; /* 04B or 04C */
+		}
+
 		extern unsigned int conn_get_charinfo_ladder(t_connection const * c)
 		{
 			ASSERT(c, 0);

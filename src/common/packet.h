@@ -280,6 +280,8 @@ namespace pvpgn
 			t_d2cs_client_motdreply         d2cs_client_motdreply;
 			t_client_d2cs_charlistreq_100   client_d2cs_charlistreq_100;
 			t_d2cs_client_charlistreply_100 d2cs_client_charlistreply_100;
+			t_client_d2cs_charlistreq_104   client_d2cs_charlistreq_104;
+			t_d2cs_client_charlistreply_104 d2cs_client_charlistreply_104;
 			t_client_d2cs_cancelcreategame  client_d2cs_cancelcreategame;
 			t_d2cs_client_creategamewait    d2cs_client_creategamewait;
 			t_client_d2cs_charladderreq     client_d2cs_charladderreq;

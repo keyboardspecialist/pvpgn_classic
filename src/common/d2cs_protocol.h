@@ -348,6 +348,21 @@ namespace pvpgn
 		bn_int			position;
 	} t_d2cs_client_creategamewait;
 
+#define CLIENT_D2CS_CHARLISTREQ_104		0x15
+	typedef struct
+	{
+		t_d2cs_client_header	h;
+	} t_client_d2cs_charlistreq_104;
+
+#define D2CS_CLIENT_CHARLISTREPLY_104		0x15
+	typedef struct
+	{
+		t_d2cs_client_header	h;
+		bn_int			maxchar;
+		bn_int			currchar;
+		/* character name and portrait string pairs */
+	} t_d2cs_client_charlistreply_104;
+
 #define D2CS_CLIENT_CHARLADDERREQ		0x16
 	typedef struct
 	{

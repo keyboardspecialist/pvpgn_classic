@@ -20,6 +20,7 @@
 #define MESSAGE_INTERNAL_ACCESS
 #include "message.h"
 
+#include <cctype>
 #include <cstring>
 #include <cerrno>
 #include <string>
@@ -45,6 +46,7 @@
 #include "mail.h"
 #include "prefs.h"
 #include "connection.h"
+#include "versioncheck.h"
 #include "irc.h"
 #include "command.h"
 #include "i18n.h"
@@ -1057,10 +1059,29 @@ namespace pvpgn
 
 			std::string formatted(playerinfo,portrait-playerinfo);
 			formatted.append((char const *)converted,converted_length);
-			if (destination_legacy && conn_get_versionid(source) <= 99) {
-				char version_tag[4];
-				std::snprintf(version_tag,sizeof(version_tag),"%03lu",100+conn_get_versionid(source));
-				formatted.append(version_tag);
+			if (destination_legacy) {
+				char display_tag[4] = {};
+				VersionCheck const * versioncheck=conn_get_versioncheck(source);
+				bool has_display_tag=false;
+				if (versioncheck) {
+					std::string version_tag=versioncheck->get_version_tag();
+					if (version_tag.size() >= 3) {
+						char const * candidate=version_tag.c_str()+version_tag.size()-3;
+						has_display_tag=true;
+						for (std::size_t i=0; i<3; i++) {
+							unsigned char ch=(unsigned char)candidate[i];
+							if (!std::isalnum(ch)) {
+								has_display_tag=false;
+								break;
+							}
+							display_tag[i]=(char)std::toupper(ch);
+						}
+					}
+				}
+				if (!has_display_tag && conn_get_versionid(source) <= 99)
+					std::snprintf(display_tag,sizeof(display_tag),"%03lu",100+conn_get_versionid(source));
+				if (display_tag[0])
+					formatted.append(display_tag);
 			}
 			return packet_append_string(packet,formatted.c_str());
 		}

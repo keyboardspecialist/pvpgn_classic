@@ -171,7 +171,7 @@ namespace pvpgn
 				conn_push_outqueue(client, rpacket);
 				packet_del_ref(rpacket);
 			}
-			if (result == BNETD_D2CS_CHARLOGINREPLY_SUCCEED && conn_get_legacy_100(client))
+			if (result == BNETD_D2CS_CHARLOGINREPLY_SUCCEED && conn_get_legacy_100(client) && !conn_is_104_client(client))
 				d2cs_send_client_charlist_100(client);
 			sq_destroy(sq, &elem);
 			return 0;

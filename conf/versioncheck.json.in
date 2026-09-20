@@ -1947,6 +1947,13 @@
                         "hash": "0x3882960e",
                         "fileMetadata": "Game.exe 12/22/00 18:08:34 403587",
                         "versionTag": "D2DV_104B"
+                    },
+                    {
+                        "title": "Diablo II 1.04b (VersionChanger NoCD)",
+                        "version": "1.0.4.1",
+                        "hash": "0xa3c40dcd",
+                        "fileMetadata": "Game.exe 05/31/21 11:23:26 86016",
+                        "versionTag": "D2DV_104B"
                     }
                 ]
             },
