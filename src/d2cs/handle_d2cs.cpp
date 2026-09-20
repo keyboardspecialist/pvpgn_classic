@@ -228,7 +228,7 @@ static int on_client_createcharreq(t_connection * c, t_packet * packet)
 	}
 	xfree(path);
 
-	if (d2char_create(account,charname,chclass,status)<0) {
+	if (d2char_create(account,charname,chclass,status,conn_get_legacy_100(c))<0) {
 		eventlog(eventlog_level_warn,__FUNCTION__,"error create character {} for account {}",charname,account);
 		reply=D2CS_CLIENT_CREATECHARREPLY_ALREADY_EXIST;
 	} else if (d2charinfo_load(account,charname,&data)<0) {

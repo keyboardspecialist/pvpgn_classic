@@ -36,8 +36,10 @@ The complete CheckRevision entry uses `IX86ver1.mpq`, equation
 `A=3845581634 B=880823580 C=1363937103 4 A=A-S B=B-C C=C-A A=A-B`, and
 metadata string `Game.exe 06/26/00 22:31:00 346243`.
 
-PvPGN treats only base-game `D2DV` version IDs `0` and `1` as early clients.
-Expansion clients are not included in this capability check.
+PvPGN treats base-game `D2DV` version IDs `0`, `1`, and `2` as early clients.
+Version ID `2` is the exact-identity-gated 1.02 profile and is validated with a
+live client. Expansion clients are not included in this capability check. The
+1.02 evidence is recorded in `diablo2-1.02-protocol.md`.
 
 ## Packet framing
 
@@ -239,7 +241,7 @@ the sending client:
 
 | Destination | Portrait bytes before trailing tag/NUL |
 |---|---:|
-| Early `D2DV_100`/`D2DV_101` | 43 |
+| Early `D2DV_100`/`D2DV_101`/`D2DV_102` | 43 |
 | Later D2 client | 33 |
 
 When an early destination receives a Diablo II player whose version ID is at
@@ -314,7 +316,8 @@ loaded, and saved it again successfully.
 
 ## Implementation map
 
-- `conf/versioncheck.json.in` identifies `D2DV_100` and `D2DV_101`.
+- `conf/versioncheck.json.in` identifies `D2DV_100`, `D2DV_101`, and
+  `D2DV_102`.
 - `src/common/bnet_protocol.h` defines the early SID `0x35` and `0x37`
   structures.
 - `src/common/d2cs_protocol.h` defines the MCP login, character-list, and

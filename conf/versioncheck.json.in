@@ -1956,6 +1956,19 @@
                     }
                 ]
             },
+            "0x02": {
+                "checkRevisionFile": "IX86ver1.mpq",
+                "equation": "A=3845581634 B=880823580 C=1363937103 4 A=A-S B=B-C C=C-A A=A-B",
+                "entries": [
+                    {
+                        "title": "Diablo II 1.02",
+                        "version": "1.0.2.0",
+                        "hash": "0x0ba6bbcd",
+                        "fileMetadata": "Game.exe 05/31/21 11:23:26 346243",
+                        "versionTag": "D2DV_102"
+                    }
+                ]
+            },
             "0x01": {
                 "checkRevisionFile": "IX86ver1.mpq",
                 "equation": "A=3845581634 B=880823580 C=1363937103 4 A=A-S B=B-C C=C-A A=A-B",

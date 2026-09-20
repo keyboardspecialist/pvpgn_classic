@@ -151,7 +151,8 @@ namespace pvpgn
 		}
 
 
-		extern int d2char_create(char const * account, char const * charname, unsigned char chclass, unsigned short status)
+		extern int d2char_create(char const * account, char const * charname, unsigned char chclass,
+			unsigned short status, unsigned int legacy_100)
 		{
 			t_d2charinfo_file	chardata;
 			char			* savefile, *infofile;
@@ -254,8 +255,14 @@ namespace pvpgn
 			if ((ladder_time > 0) && (now < ladder_time))
 				charstatus_set_ladder(status, 0);
 
-			/* create from newbie.save or normal d2s template? */
+			/* Early clients require the legacy save revision even when sharing this template with later clients. */
 			version = bn_int_get(buffer + D2CHARSAVE_VERSION_OFFSET);
+			if (legacy_100) {
+				version = 0x47;
+				bn_int_set((bn_int *)(buffer + D2CHARSAVE_VERSION_OFFSET), version);
+			}
+
+			/* create from newbie.save or normal d2s template? */
 			if (version >= D2CHARSAVE_CHECKSUM_MIN_VERSION)
 				d2charsave_init_from_d2s(buffer, charname, chclass, status_init, size);
 			else

@@ -75,7 +75,7 @@ namespace d2cs
 {
 
 extern int d2char_create(char const * account, char const * charname, unsigned char chclass,
-			unsigned short status);
+			unsigned short status, unsigned int legacy_100);
 extern int d2char_delete(char const * account, char const * charname);
 extern int d2char_get_summary(char const * account, char const * charname,t_d2charinfo_summary * charinfo);
 extern int d2char_get_portrait(char const * account, char const * filename, t_d2charinfo_portrait * portrait);

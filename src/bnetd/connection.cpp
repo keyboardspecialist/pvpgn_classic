@@ -1403,8 +1403,12 @@ namespace pvpgn
 
 		extern bool conn_is_legacy_d2_client(t_connection const * c)
 		{
-			return c && conn_get_clienttag(c) == CLIENTTAG_DIABLO2DV_UINT &&
-				(conn_get_versionid(c) == 0 || conn_get_versionid(c) == 1);
+			if (!c || conn_get_clienttag(c) != CLIENTTAG_DIABLO2DV_UINT)
+				return false;
+			if (conn_get_versionid(c) == 0 || conn_get_versionid(c) == 1)
+				return true;
+			return conn_get_versionid(c) == 2 && c->protocol.client.versioncheck &&
+				c->protocol.client.versioncheck->get_version_tag() == "D2DV_102";
 		}
 
 

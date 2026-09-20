@@ -11,8 +11,8 @@ SID `0x37` before it has selected or joined a realm. The original PvPGN path
 looked up account metadata using `conn_get_realm(c)`, which is null at this
 point, and returned an empty list.
 
-For the exact early `D2DV` 1.00 and 1.01 clients (`versionid` `0` and `1`),
-BNCS now reads the authoritative D2CS charinfo files from
+For the early `D2DV` 1.00, 1.01, and exact-identity 1.02 clients (`versionid`
+`0`, `1`, and `2`), BNCS now reads the authoritative D2CS charinfo files from
 `d2cs_charinfo_dir`. It returns at most eight records containing:
 
 ```text
@@ -32,7 +32,7 @@ d2cs_charinfo_dir = var\charinfo
 
 D2CS also recognizes the shorter early login structure and supports the legacy
 MCP `0x10` character summary message. The BNCS SID `0x37` response remains the
-message that populates the pre-realm 1.00/1.01 selector.
+message that populates the pre-realm 1.00/1.01/1.02 selector.
 
 ## Character storage
 
