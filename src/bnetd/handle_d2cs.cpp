@@ -18,8 +18,10 @@
 #include "common/setup_before.h"
 #include "handle_d2cs.h"
 
+#include <cctype>
 #include <cstring>
 #include <cstdio>
+#include <string>
 
 #include "compat/strcasecmp.h"
 #include "common/eventlog.h"
@@ -46,6 +48,29 @@ namespace pvpgn
 		static int on_d2cs_charloginreq(t_connection * c, t_packet const * packet);
 		static int on_d2cs_authreply(t_connection * c, t_packet const * packet);
 		static int on_d2cs_gameinforeply(t_connection * c, t_packet const * packet);
+		static unsigned int get_character_patch_tag(t_connection * client);
+
+		static unsigned int get_character_patch_tag(t_connection * client)
+		{
+			VersionCheck const * versioncheck = conn_get_versioncheck(client);
+			if (!versioncheck)
+				return 0;
+
+			std::string version_tag = versioncheck->get_version_tag();
+			std::size_t separator = version_tag.rfind('_');
+			if (separator == std::string::npos || version_tag.size()-separator-1 < 3)
+				return 0;
+
+			char const * display = version_tag.c_str()+version_tag.size()-3;
+			unsigned int patch_tag = 0;
+			for (unsigned int i = 0; i < 3; i++) {
+				unsigned char ch = (unsigned char)display[i];
+				if (!std::isalnum(ch))
+					return 0;
+				patch_tag |= (unsigned int)std::toupper(ch) << (i*8);
+			}
+			return patch_tag;
+		}
 
 		extern int handle_d2cs_packet(t_connection * c, t_packet const * packet)
 		{
@@ -166,6 +191,7 @@ namespace pvpgn
 			unsigned int	sessionkey;
 			unsigned int	sessionnum;
 			unsigned int	salt;
+			unsigned int	patch_tag;
 			char const *	account;
 			char const *	tname;
 			t_connection	* client;
@@ -184,6 +210,7 @@ namespace pvpgn
 			t_hash	     passhash;
 			t_hash	     try_hash;
 
+			client = NULL;
 			if (packet_get_size(packet) < sizeof(t_d2cs_bnetd_accountloginreq)) {
 				eventlog(eventlog_level_error, __FUNCTION__, "got bad packet size");
 				return -1;
@@ -236,12 +263,15 @@ namespace pvpgn
 					}
 				}
 			}
+			patch_tag = reply == BNETD_D2CS_ACCOUNTLOGINREPLY_SUCCEED && client ?
+				get_character_patch_tag(client) : 0;
 			if ((rpacket = packet_create(packet_class_d2cs_bnetd))) {
 				packet_set_size(rpacket, sizeof(t_bnetd_d2cs_accountloginreply));
 				packet_set_type(rpacket, BNETD_D2CS_ACCOUNTLOGINREPLY);
 				bn_int_set(&rpacket->u.bnetd_d2cs_accountloginreply.h.seqno,
 					bn_int_get(packet->u.d2cs_bnetd_accountloginreq.h.seqno));
 				bn_int_set(&rpacket->u.bnetd_d2cs_accountloginreply.reply, reply);
+				bn_int_set(&rpacket->u.bnetd_d2cs_accountloginreply.patch_tag, patch_tag);
 				conn_push_outqueue(c, rpacket);
 				packet_del_ref(rpacket);
 			}

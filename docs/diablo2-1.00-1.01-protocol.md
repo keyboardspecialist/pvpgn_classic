@@ -13,7 +13,8 @@ PvPGN's version-check database assigns these base-game builds to distinct
 | Build | Version ID | Version tag | CheckRevision hash |
 |---|---:|---|---:|
 | 1.00 installation | `0x00` | `D2DV_100` | `0xAC5E46CB` |
-| 1.01 | `0x01` | `D2DV_101` | `0x5AEF7E66` |
+| 1.01 retail | `0x01` | `D2DV_101` | `0x5AEF7E66` |
+| 1.01 VersionChanger NoCD | `0x01` | `D2DV_101` | `0xDA412BA6` |
 
 The analyzed 1.01 `Game.exe` reports version `1.0.0.1`, has PE timestamp
 `0x3957D64D`, and has SHA-256:
@@ -35,6 +36,10 @@ Patch_D2.mpq     4CEEE60C72401092B533D11CEB37BD11946DA6C7971263A4127335CC57D2F66
 The complete CheckRevision entry uses `IX86ver1.mpq`, equation
 `A=3845581634 B=880823580 C=1363937103 4 A=A-S B=B-C C=C-A A=A-B`, and
 metadata string `Game.exe 06/26/00 22:31:00 346243`.
+
+Live cross-version selector validation also identified the VersionChanger NoCD
+variant. It reports `Game.exe 05/31/21 11:23:26 45056` and CheckRevision hash
+`0xDA412BA6`; it shares the exact patch identity `D2DV_101`.
 
 PvPGN treats base-game `D2DV` version IDs `0`, `1`, and `2` as early clients.
 Version ID `2` is the exact-identity-gated 1.02 profile and is validated with a

@@ -75,6 +75,7 @@ namespace pvpgn
 	{
 		t_d2cs_bnetd_header	h;
 		bn_int			reply;
+		bn_int			patch_tag;
 	} t_bnetd_d2cs_accountloginreply;
 #define BNETD_D2CS_ACCOUNTLOGINREPLY_SUCCEED		0x00
 #define BNETD_D2CS_ACCOUNTLOGINREPLY_FAILED		0x01

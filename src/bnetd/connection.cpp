@@ -1407,8 +1407,12 @@ namespace pvpgn
 				return false;
 			if (conn_get_versionid(c) == 0 || conn_get_versionid(c) == 1)
 				return true;
-			return conn_get_versionid(c) == 2 && c->protocol.client.versioncheck &&
-				c->protocol.client.versioncheck->get_version_tag() == "D2DV_102";
+			if (!c->protocol.client.versioncheck)
+				return false;
+			return (conn_get_versionid(c) == 2 &&
+					c->protocol.client.versioncheck->get_version_tag() == "D2DV_102") ||
+				(conn_get_versionid(c) == 3 &&
+					c->protocol.client.versioncheck->get_version_tag() == "D2DV_103");
 		}
 
 

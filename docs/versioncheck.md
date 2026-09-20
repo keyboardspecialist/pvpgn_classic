@@ -13,4 +13,9 @@ The `entries` array consists of five pairs: `title`, `version`, `hash`, `fileMet
 - `hash`: The hash returned by CheckRevision which uses up to three files from the game to produce the hash. See sample implementation: https://github.com/pvpgn/CheckRevision
 - `fileMetadata`: The string returned by CheckRevision which consists of the game's filename, last modified date, last modified time, and filesize, all separated by one space (e.g. `war3.exe 08/16/09 19:21:59 471040`). See sample implementation: https://github.com/pvpgn/CheckRevision
 	- Note: This pair is currently unused by PvPGN, but may be used in the future.
-- `versionTag`: An arbitrary string that must be unique from all other version tags. It is traditionally in the form of the four-letter game string, followed by an underscore and the version (e.g. `WAR3_1282` is used for WarCraft 3: Reign of Chaos 1.28.2).
+- `versionTag`: An arbitrary patch identity. It is traditionally in the form of the four-letter game string, followed by an underscore and the version (e.g. `WAR3_1282` is used for WarCraft 3: Reign of Chaos 1.28.2). Entries for binary variants of the same patch may share a version tag and are selected by checksum.
+
+For early Diablo II clients, the exact `versionTag` is also the source of the
+three-character creation-patch code persisted in character information. The
+last three alphanumeric characters are used, so suffix releases must have
+distinct tags such as `D2DV_104B` and `D2DV_104C`.

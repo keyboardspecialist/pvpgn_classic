@@ -1077,13 +1077,12 @@ namespace pvpgn
 				return 0;
 			}
 
-			std::string version_string = vernum_to_verstr(bn_int_get(packet->u.client_authreq1.gameversion));
-			conn_set_clientver(c, version_string.c_str());
-			eventlog(eventlog_level_info, __FUNCTION__, "[{}] CLIENT_AUTHREQ1 archtag=0x{:08x} clienttag=0x{:08x} verstr={} exeinfo=\"{}\" versionid=0x{:08x} gameversion=0x{:08x} checksum=0x{:08x}", conn_get_socket(c), bn_int_get(packet->u.client_authreq1.archtag), bn_int_get(packet->u.client_authreq1.clienttag), version_string, exeinfo, conn_get_versionid(c), conn_get_gameversion(c), conn_get_checksum(c));
-
 			conn_set_versionid(c, bn_int_get(packet->u.client_authreq1.versionid));
 			conn_set_checksum(c, bn_int_get(packet->u.client_authreq1.checksum));
 			conn_set_gameversion(c, bn_int_get(packet->u.client_authreq1.gameversion));
+			std::string version_string = vernum_to_verstr(conn_get_gameversion(c));
+			conn_set_clientver(c, version_string.c_str());
+			eventlog(eventlog_level_info, __FUNCTION__, "[{}] CLIENT_AUTHREQ1 archtag=0x{:08x} clienttag=0x{:08x} verstr={} exeinfo=\"{}\" versionid=0x{:08x} gameversion=0x{:08x} checksum=0x{:08x}", conn_get_socket(c), bn_int_get(packet->u.client_authreq1.archtag), bn_int_get(packet->u.client_authreq1.clienttag), version_string, exeinfo, conn_get_versionid(c), conn_get_gameversion(c), conn_get_checksum(c));
 
 			
 			const VersionCheck* vc = select_versioncheck(conn_get_archtag(c), conn_get_clienttag(c), conn_get_versionid(c), conn_get_gameversion(c), conn_get_checksum(c));
@@ -3379,6 +3378,20 @@ namespace pvpgn
 						portrait[35]=source[25];
 						std::memcpy(portrait+36,source+26,7);
 					}
+					char patch_tag[4] = "???";
+					if (bn_int_get(charinfo.header.reserved[D2CHARINFO_PATCH_TAG_MAGIC_RESERVED]) == D2CHARINFO_PATCH_TAG_MAGIC) {
+						unsigned int stored_tag = bn_int_get(charinfo.header.reserved[D2CHARINFO_PATCH_TAG_VALUE_RESERVED]);
+						char candidate[3];
+						bool valid = true;
+						for (unsigned int i = 0; i < 3; i++) {
+							candidate[i] = (char)(stored_tag >> (i*8));
+							if (!std::isalnum((unsigned char)candidate[i]))
+								valid = false;
+						}
+						if (valid)
+							std::memcpy(patch_tag,candidate,sizeof(candidate));
+					}
+					std::memcpy(portrait+D2CHARINFO_PORTRAIT_LEGACY_BASE_SIZE-1,patch_tag,sizeof(patch_tag));
 
 					packet_append_ntstring(packet,realmname);
 					packet_append_ntstring(packet,",");

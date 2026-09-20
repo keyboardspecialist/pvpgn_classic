@@ -1932,7 +1932,7 @@
                         "version": "1.0.4.2",
                         "hash": "0xc6d40aaf",
                         "fileMetadata": "Game.exe 12/23/00 18:28:04 387107",
-                        "versionTag": "D2DV_104B"
+                        "versionTag": "D2DV_104C"
                     },
                     {
                         "title": "Diablo II 1.04b",
@@ -1952,6 +1952,20 @@
                         "version": "1.0.3.0",
                         "hash": "0x0120ed90",
                         "fileMetadata": "Game.exe 08/01/00 00:34:00 346243",
+                        "versionTag": "D2DV_103"
+                    },
+                    {
+                        "title": "Diablo II 1.03 (retail archive)",
+                        "version": "1.0.3.0",
+                        "hash": "0x236beddd",
+                        "fileMetadata": "Game.exe 08/01/00 00:34:00 346243",
+                        "versionTag": "D2DV_103"
+                    },
+                    {
+                        "title": "Diablo II 1.03 (VersionChanger NoCD)",
+                        "version": "1.0.3.0",
+                        "hash": "0x5548b82d",
+                        "fileMetadata": "Game.exe 05/31/21 11:23:26 45056",
                         "versionTag": "D2DV_103"
                     }
                 ]
@@ -1978,6 +1992,13 @@
                         "version": "1.0.0.1",
                         "hash": "0x5aef7e66",
                         "fileMetadata": "Game.exe 06/26/00 22:31:00 346243",
+                        "versionTag": "D2DV_101"
+                    },
+                    {
+                        "title": "Diablo II 1.01 (VersionChanger NoCD)",
+                        "version": "1.0.0.1",
+                        "hash": "0xda412ba6",
+                        "fileMetadata": "Game.exe 05/31/21 11:23:26 45056",
                         "versionTag": "D2DV_101"
                     }
                 ]

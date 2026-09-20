@@ -53,7 +53,7 @@ namespace pvpgn
 		static int d2charsave_init(void * buffer, char const * charname, unsigned char chclass, unsigned short status);
 		static int d2charsave_init_from_d2s(unsigned char * buffer, char const * charname, unsigned char chclass, unsigned short status, unsigned int size);
 		static int d2charinfo_init(t_d2charinfo_file * chardata, char const * account, char const * charname,
-			unsigned char chclass, unsigned short status);
+			unsigned char chclass, unsigned short status, unsigned int patch_tag);
 		static bool d2char_portrait_is_legacy(t_d2charinfo_portrait const * portrait);
 
 		static bool d2char_portrait_is_legacy(t_d2charinfo_portrait const * portrait)
@@ -104,7 +104,7 @@ namespace pvpgn
 
 
 		static int d2charinfo_init(t_d2charinfo_file * chardata, char const * account, char const * charname,
-			unsigned char chclass, unsigned short status)
+			unsigned char chclass, unsigned short status, unsigned int patch_tag)
 		{
 			unsigned int		i;
 			std::time_t		now;
@@ -125,6 +125,10 @@ namespace pvpgn
 			bn_int_set(&chardata->header.checksum, 0);
 			for (i = 0; i < NELEMS(chardata->header.reserved); i++) {
 				bn_int_set(&chardata->header.reserved[i], 0);
+			}
+			if (patch_tag) {
+				bn_int_set(&chardata->header.reserved[D2CHARINFO_PATCH_TAG_MAGIC_RESERVED], D2CHARINFO_PATCH_TAG_MAGIC);
+				bn_int_set(&chardata->header.reserved[D2CHARINFO_PATCH_TAG_VALUE_RESERVED], patch_tag);
 			}
 			bn_int_set(&chardata->summary.charlevel, 1);
 			bn_int_set(&chardata->summary.experience, 0);
@@ -152,7 +156,7 @@ namespace pvpgn
 
 
 		extern int d2char_create(char const * account, char const * charname, unsigned char chclass,
-			unsigned short status, unsigned int legacy_100)
+			unsigned short status, unsigned int legacy_100, unsigned int patch_tag)
 		{
 			t_d2charinfo_file	chardata;
 			char			* savefile, *infofile;
@@ -268,7 +272,7 @@ namespace pvpgn
 			else
 				d2charsave_init(buffer, charname, chclass, status);
 
-			d2charinfo_init(&chardata, account, charname, chclass, status);
+			d2charinfo_init(&chardata, account, charname, chclass, status, patch_tag);
 
 			if (file_write(infofile, &chardata, sizeof(chardata)) < 0) {
 				eventlog(eventlog_level_error, __FUNCTION__, "error writing info file \"{}\"", infofile);

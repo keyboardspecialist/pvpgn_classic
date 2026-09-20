@@ -413,6 +413,7 @@ namespace pvpgn
 			c->bnetd_sessionnum = 0;
 			c->charname_hash = 0;
 			c->legacy_100 = 0;
+			c->patch_tag = 0;
 			if (hashtable_insert_data(connlist_head, c, c->sessionnum_hash) < 0) {
 				xfree(c);
 				eventlog(eventlog_level_error, __FUNCTION__, "error add connection to list");
@@ -697,6 +698,19 @@ namespace pvpgn
 		{
 			ASSERT(c, 0);
 			return c->legacy_100;
+		}
+
+		extern int conn_set_patch_tag(t_connection * c, unsigned int patch_tag)
+		{
+			ASSERT(c, -1);
+			c->patch_tag = patch_tag;
+			return 0;
+		}
+
+		extern unsigned int conn_get_patch_tag(t_connection const * c)
+		{
+			ASSERT(c, 0);
+			return c->patch_tag;
 		}
 
 		extern unsigned int conn_get_charinfo_ladder(t_connection const * c)

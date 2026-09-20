@@ -47,7 +47,7 @@ selects the same recipient-specific capabilities already used by 1.00 and
 - SID `0x35` realm handoff.
 - SID `0x37` closed-character selector.
 - 43-byte early lobby portrait records.
-- The otherwise unused three-byte guild field as display tag `102`.
+- The otherwise unused three-byte guild field for creation-patch provenance.
 
 The classification is an explicit version list, not an open numerical range.
 
@@ -109,7 +109,7 @@ created backups, and unlocked the character after both games.
 | BNCS version ID `0x02` | Validated |
 | SID `0x35`/`0x37` handling | Validated end to end |
 | Early MCP login and replies | Validated |
-| Lobby portrait and `102` tag | Validated |
+| Lobby portrait | Validated |
 | 32-byte D2Net join | Validated through D2GS handoff and entry |
 | D2GS engine startup | Validated |
 | Character create/enter/save/reload lifecycle | Validated with revision `0x47` |
@@ -120,8 +120,10 @@ created backups, and unlocked the character after both games.
 - `src/bnetd/connection.cpp` includes version ID `0x02` in the explicit early
   client capability predicate.
 - `src/bnetd/handle_bnet.cpp` owns the shared SID `0x35` and `0x37` paths.
-- `src/bnetd/message.cpp` owns recipient-specific portrait conversion and the
-  three-digit patch tag.
+- `src/bnetd/message.cpp` owns recipient-specific lobby portrait conversion.
+- `src/bnetd/handle_bnet.cpp` displays persisted creation-patch provenance in
+  the SID `0x37` guild field. Characters created before provenance tracking
+  display `???` unless they are explicitly backfilled from trusted records.
 - `src/d2cs/handle_d2cs.cpp` classifies the early MCP login and emits early
   character-list and ladder streams, and supplies that capability when creating
   a character.

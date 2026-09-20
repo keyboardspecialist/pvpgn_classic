@@ -19,6 +19,7 @@
 #include "setup.h"
 #include "dbspacket.h"
 
+#include <cctype>
 #include <cstdio>
 #include <cerrno>
 #include <cstring>
@@ -151,6 +152,7 @@ namespace pvpgn
 			char filename[MAX_PATH];
 			std::FILE * fd;
 			struct stat statbuf;
+			t_d2charinfo_file existing;
 
 			strtolower(AccountName);
 			strtolower(CharName);
@@ -159,6 +161,28 @@ namespace pvpgn
 			if (stat(filepath, &statbuf) == -1) {
 				p_mkdir(filepath, S_IRWXU | S_IRWXG | S_IRWXO);
 				eventlog(eventlog_level_info, __FUNCTION__, "created charinfo directory: {}", filepath);
+			}
+
+			std::sprintf(savefile, "%s/%s/%s", d2dbs_prefs_get_charinfo_dir(), AccountName, CharName);
+			if (datalen == sizeof(t_d2charinfo_file) &&
+					(fd = std::fopen(savefile, "rb")) != NULL) {
+				if (std::fread(&existing, 1, sizeof(existing), fd) == sizeof(existing) &&
+						bn_int_get(existing.header.magicword) == D2CHARINFO_MAGICWORD &&
+						bn_int_get(existing.header.version) == D2CHARINFO_VERSION &&
+						bn_int_get(existing.header.reserved[D2CHARINFO_PATCH_TAG_MAGIC_RESERVED]) == D2CHARINFO_PATCH_TAG_MAGIC) {
+					unsigned int stored_tag = bn_int_get(existing.header.reserved[D2CHARINFO_PATCH_TAG_VALUE_RESERVED]);
+					bool valid_tag = true;
+					for (unsigned int i = 0; i < 3; i++) {
+						if (!std::isalnum((unsigned char)(stored_tag >> (i*8))))
+							valid_tag = false;
+					}
+					if (valid_tag) {
+						t_d2charinfo_file * incoming = (t_d2charinfo_file *)data;
+						std::memcpy(&incoming->header.reserved[D2CHARINFO_PATCH_TAG_MAGIC_RESERVED],
+							&existing.header.reserved[D2CHARINFO_PATCH_TAG_MAGIC_RESERVED], 2*sizeof(bn_int));
+					}
+				}
+				std::fclose(fd);
 			}
 
 			std::sprintf(filename, "%s/%s/.%s.tmp", d2dbs_prefs_get_charinfo_dir(), AccountName, CharName);
@@ -186,7 +210,6 @@ namespace pvpgn
 			std::fclose(fd);
 
 			std::sprintf(bakfile, "%s/%s/%s", prefs_get_charinfo_bak_dir(), AccountName, CharName);
-			std::sprintf(savefile, "%s/%s/%s", d2dbs_prefs_get_charinfo_dir(), AccountName, CharName);
 			if (p_rename(savefile, bakfile) == -1) {
 				eventlog(eventlog_level_info, __FUNCTION__, "error std::rename {} to {}", savefile, bakfile);
 			}
@@ -360,14 +383,21 @@ namespace pvpgn
 				}
 			}
 			else if (datatype == D2GS_DATA_PORTRAIT) {
-				/* if level is > 255 , sets level to 255 */
-				dbs_packet_set_charinfo_level(CharName, readpos);
-				if (dbs_packet_savedata_charinfo(conn, AccountName, CharName, readpos, datalen) > 0) {
-					result = D2DBS_SAVE_DATA_SUCCESS;
-				}
-				else {
+				if (datalen != sizeof(t_d2charinfo_file)) {
+					eventlog(eventlog_level_error, __FUNCTION__, "invalid charinfo size {}", datalen);
 					datalen = 0;
 					result = D2DBS_SAVE_DATA_FAILED;
+				}
+				else {
+					/* if level is > 255 , sets level to 255 */
+					dbs_packet_set_charinfo_level(CharName, readpos);
+					if (dbs_packet_savedata_charinfo(conn, AccountName, CharName, readpos, datalen) > 0) {
+						result = D2DBS_SAVE_DATA_SUCCESS;
+					}
+					else {
+						datalen = 0;
+						result = D2DBS_SAVE_DATA_FAILED;
+					}
 				}
 			}
 			else {

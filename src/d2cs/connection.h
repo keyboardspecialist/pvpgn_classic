@@ -80,6 +80,7 @@ typedef struct
 	unsigned int			sessionnum_hash;
 	unsigned int			charname_hash;
 	unsigned int			legacy_100;
+	unsigned int			patch_tag;
 } t_connection;
 
 typedef int ( * packet_handle_func) (t_connection * c, t_packet * packet);
@@ -143,6 +144,8 @@ extern int conn_set_bnetd_sessionnum(t_connection * c, unsigned int sessionnum);
 extern unsigned int conn_get_bnetd_sessionnum(t_connection const * c);
 extern int conn_set_legacy_100(t_connection * c, unsigned int legacy_100);
 extern unsigned int conn_get_legacy_100(t_connection const * c);
+extern int conn_set_patch_tag(t_connection * c, unsigned int patch_tag);
+extern unsigned int conn_get_patch_tag(t_connection const * c);
 extern int conn_add_fd(t_connection * c, t_fdwatch_type rw, fdwatch_handler handler);
 extern int connlist_check_timeout(void);
 

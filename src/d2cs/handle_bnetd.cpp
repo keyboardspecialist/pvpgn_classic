@@ -156,6 +156,7 @@ namespace pvpgn
 				reply = D2CS_CLIENT_LOGINREPLY_SUCCEED;
 				account = packet_get_str_const(opacket, sizeof(t_client_d2cs_loginreq), MAX_CHARNAME_LEN);
 				d2cs_conn_set_account(client, account);
+				conn_set_patch_tag(client,bn_int_get(packet->u.bnetd_d2cs_accountloginreply.patch_tag));
 				d2cs_conn_set_state(client, conn_state_authed);
 				eventlog(eventlog_level_info, __FUNCTION__, "account {} authed", account);
 			}

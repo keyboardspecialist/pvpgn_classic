@@ -62,7 +62,7 @@ namespace pvpgn
 
 	namespace bnetd
 	{
-		std::unordered_map<std::tuple<std::uint32_t, std::uint32_t, t_tag, t_tag>, VersionCheck, hash_tuple::hash<std::tuple<std::uint32_t, std::uint32_t, t_tag, t_tag>>> vc_entries;
+		std::unordered_multimap<std::tuple<std::uint32_t, std::uint32_t, t_tag, t_tag>, VersionCheck, hash_tuple::hash<std::tuple<std::uint32_t, std::uint32_t, t_tag, t_tag>>> vc_entries;
 		std::unordered_map<std::tuple<t_tag, t_tag, std::uint32_t>, std::tuple<std::string, std::string>, hash_tuple::hash<std::tuple<t_tag, t_tag, std::uint32_t>>> cr_entries;
 
 		bool versioncheck_conf_is_loaded = false;
@@ -154,7 +154,7 @@ namespace pvpgn
 									jentry["versionTag"].get<std::string>()
 								);
 								
-								vc_entries.insert({ std::make_tuple(entry.m_version_id, entry.m_game_version, entry.m_architecture, entry.m_client), entry });
+								vc_entries.emplace(std::make_tuple(entry.m_version_id, entry.m_game_version, entry.m_architecture, entry.m_client), entry);
 							}
 							catch (const std::exception& e)
 							{
@@ -208,19 +208,19 @@ namespace pvpgn
 		const VersionCheck* select_versioncheck(t_tag architecture, t_tag client, std::uint32_t version_id,
 			std::uint32_t checkrevision_version, std::uint32_t checkrevision_checksum)
 		{
-			auto it = vc_entries.find(std::make_tuple(version_id, checkrevision_version, architecture, client));
-			if (it == vc_entries.end())
+			auto range = vc_entries.equal_range(std::make_tuple(version_id, checkrevision_version, architecture, client));
+			if (range.first == range.second)
 			{
 				return nullptr;
 			}
 
-			if (it->second.m_checksum != checkrevision_checksum
-				&& !prefs_get_allow_bad_version())
+			for (auto it = range.first; it != range.second; ++it)
 			{
-				return nullptr;
+				if (it->second.m_checksum == checkrevision_checksum)
+					return &(it->second);
 			}
 
-			return &(it->second);
+			return prefs_get_allow_bad_version() ? &(range.first->second) : nullptr;
 		}
 
 		VersionCheck::VersionCheck(const std::string& title, std::uint32_t version_id, const std::string& game_version,
