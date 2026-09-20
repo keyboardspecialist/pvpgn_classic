@@ -13,6 +13,7 @@ PvPGN's version-check database assigns these base-game builds to distinct
 | Build | Version ID | Version tag | CheckRevision hash |
 |---|---:|---|---:|
 | 1.00 installation | `0x00` | `D2DV_100` | `0xAC5E46CB` |
+| 1.00 VersionChanger NoCD | `0x00` | `D2DV_100` | `0x9DEF2E4C` |
 | 1.01 retail | `0x01` | `D2DV_101` | `0x5AEF7E66` |
 | 1.01 VersionChanger NoCD | `0x01` | `D2DV_101` | `0xDA412BA6` |
 
@@ -38,8 +39,9 @@ The complete CheckRevision entry uses `IX86ver1.mpq`, equation
 metadata string `Game.exe 06/26/00 22:31:00 346243`.
 
 Live cross-version selector validation also identified the VersionChanger NoCD
-variant. It reports `Game.exe 05/31/21 11:23:26 45056` and CheckRevision hash
-`0xDA412BA6`; it shares the exact patch identity `D2DV_101`.
+variants. Both report `Game.exe 05/31/21 11:23:26 45056`. The 1.00 executable
+has CheckRevision hash `0x9DEF2E4C` and the 1.01 executable has hash
+`0xDA412BA6`; they retain the exact `D2DV_100` and `D2DV_101` patch identities.
 
 PvPGN treats base-game `D2DV` version IDs `0`, `1`, and `2` as early clients.
 Version ID `2` is the exact-identity-gated 1.02 profile and is validated with a
@@ -112,6 +114,11 @@ The early portrait is the non-NUL 43-byte portion of the historical
 `t_d2char_info` layout. Unknown and unused bytes must remain nonzero because
 the client treats NUL as the record delimiter. PvPGN stores up to 64 portrait
 bytes while preserving the 192-byte on-disk charinfo ABI.
+
+The portrait's final bytes contain two guild-insignia colors and an insignia
+number before the independently appended three-character tag. Their layout and
+the surviving 1.07 client assets are documented in
+`diablo2-classic-guild-research.md`.
 
 The 1.01 live test completed both the early realm handoff and character
 selector paths. The current implementation therefore sends 1.01 through the
@@ -253,7 +260,10 @@ When an early destination receives a Diablo II player whose version ID is at
 most 99, PvPGN appends a three-digit display tag. Version IDs `0`, `1`, and `9`
 therefore render as `100`, `101`, and `109`. Live clients have validated the
 `100`, `101`, and `109` tags. Stock 1.09, 1.09b, and 1.09d clients ignore the
-early trailing guild field.
+early trailing guild field. A live 1.09 test confirmed that the client still
+renders the insignia in both the character selector and Battle.net lobby: the
+legacy color and emblem bytes at offsets `39..41` map to modern portrait offsets
+`29..31`, independently of the removed tag.
 
 ## D2Net game join
 

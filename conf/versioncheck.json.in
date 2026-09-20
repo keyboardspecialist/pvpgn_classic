@@ -1869,6 +1869,13 @@
                 "equation": "A=3845581634 B=880823580 C=1363937103 4 A=A-S B=B-C C=C-A A=A-B",
                 "entries": [
                     {
+                        "title": "Diablo II 1.09 (VersionChanger NoCD)",
+                        "version": "1.0.9.0",
+                        "hash": "0x19bdff70",
+                        "fileMetadata": "Game.exe 05/31/21 11:23:26 86016",
+                        "versionTag": "D2DV_109"
+                    },
+                    {
                         "title": "Diablo II 1.09b",
                         "version": "1.0.9.0",
                         "hash": "0xb9cb2cb1",
@@ -2012,6 +2019,13 @@
                         "version": "1.0.0.1",
                         "hash": "0xac5e46cb",
                         "fileMetadata": "Game.exe 01/01/97 02:05:09 309379",
+                        "versionTag": "D2DV_100"
+                    },
+                    {
+                        "title": "Diablo II 1.00 (VersionChanger NoCD)",
+                        "version": "1.0.0.1",
+                        "hash": "0x9def2e4c",
+                        "fileMetadata": "Game.exe 05/31/21 11:23:26 45056",
                         "versionTag": "D2DV_100"
                     }
                 ]
